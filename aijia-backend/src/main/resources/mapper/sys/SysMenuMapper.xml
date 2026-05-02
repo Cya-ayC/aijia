@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 这里的 namespace 一定要写对，指向你的 SysMenuMapper 接口 -->
+<mapper namespace="com.aijia.aijia.mapper.sys.SysMenuMapper">
+
+    <select id="selectMenusByUserId" resultType="com.aijia.aijia.entity.sys.SysMenu">
+        <!-- 核心逻辑：穿透 用户->角色->菜单 三张表 -->
+
+        SELECT DISTINCT
+        m.id,
+        m.parent_id,
+        m.menu_name,
+        m.path,
+        m.icon,
+        m.menu_type,
+        m.sort_order
+        FROM sys_menu m
+        -- 1. 连接角色菜单关联表
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        -- 2. 连接用户角色关联表
+        INNER JOIN sys_user_role ur ON rm.role_id = ur.role_id
+        -- 3. 过滤条件：指定用户ID，且只要菜单(C)和目录(M)，不要按钮(F)
+        WHERE ur.user_id = #{userId}
+        AND m.menu_type IN ('M', 'C')
+        -- 4. 按数据库配置的顺序排列
+        ORDER BY m.sort_order ASC
+    </select>
+</mapper>

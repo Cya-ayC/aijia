@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aijia.aijia.mapper.BillMapper">
+
+    <select id="selectBillPage" resultType="com.aijia.aijia.entity.vo.BillVO">
+        SELECT
+        b.*,
+        build.name as buildingName,
+        u.name as unitName,
+        r.room_num as roomNum,
+        o.name as ownerName
+        FROM bus_bill b
+        LEFT JOIN bus_room r ON b.room_id = r.id
+        LEFT JOIN bus_unit u ON r.unit_id = u.id
+        LEFT JOIN bus_building build ON u.building_id = build.id
+        -- 关联房主：relation_type = 1 代表业主本人
+        LEFT JOIN bus_room_owner ro ON r.id = ro.room_id AND ro.relation_type = 1
+        LEFT JOIN bus_owner o ON ro.owner_id = o.id
+        <where>
+            <!-- 🚀 核心新增：如果 query 中带了 userId (业主登录时后端强制注入)，则锁定该业主的数据 -->
+            <if test="query.userId != null">
+                AND o.user_id = #{query.userId}
+            </if>
+
+            <if test="query.year != null">
+                AND b.year = #{query.year}
+            </if>
+            <if test="query.payStatus != null ">
+                AND b.pay_status = #{query.payStatus}
+            </if>
+            <if test="query.roomNum != null and query.roomNum != ''">
+                AND r.room_num LIKE CONCAT('%', #{query.roomNum}, '%')
+            </if>
+            <!-- 业主名模糊查询 -->
+            <if test="query.ownerName != null and query.ownerName != ''">
+                AND o.name LIKE CONCAT('%', #{query.ownerName}, '%')
+            </if>
+            <!-- 楼栋和单元精确查询 -->
+            <if test="query.buildingId != null">
+                AND build.id = #{query.buildingId}
+            </if>
+            <if test="query.unitId != null">
+                AND u.id = #{query.unitId}
+            </if>
+        </where>
+        ORDER BY b.year DESC, b.month DESC, b.create_time DESC
+    </select>
+    <select id="getFinanceReport" resultType="com.aijia.aijia.entity.vo.FinanceReportVO">
+        SELECT
+        -- 总应收
+        SUM(total_amount) as totalAmount,
+        -- 已收实额 (状态为 1-PAID)
+        SUM(CASE WHEN pay_status = 1 THEN total_amount ELSE 0 END) as paidAmount,
+        -- 欠费总额 (状态为 0-UNPAID)
+        SUM(CASE WHEN pay_status = 0 THEN total_amount ELSE 0 END) as unpaidAmount,
+        -- 账单总数
+        COUNT(id) as totalBillCount,
+        -- 已缴数
+        SUM(CASE WHEN pay_status = 1 THEN 1 ELSE 0 END) as paidBillCount,
+        -- 计算收缴率 (如果总额为0则返回0，防止除以0报错)
+        IFNULL(ROUND(SUM(CASE WHEN pay_status = 1 THEN total_amount ELSE 0 END) / SUM(total_amount) * 100, 2), 0) as payRate
+        FROM bus_bill
+        <where>
+            <if test="year != null"> AND year = #{year} </if>
+            AND is_deleted = 0
+        </where>
+    </select>
+</mapper>

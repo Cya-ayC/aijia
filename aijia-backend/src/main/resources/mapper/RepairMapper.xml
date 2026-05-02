@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aijia.aijia.mapper.RepairMapper">
+
+    <select id="selectRepairPage" resultType="com.aijia.aijia.entity.vo.RepairVO">
+        SELECT
+        rep.*,
+        b.name AS buildingName,
+        u.name AS unitName,      -- 补充单元名称
+        r.room_num AS roomNum,
+        o.name AS ownerName,
+        o.phone AS ownerPhone
+        FROM bus_repair rep
+        LEFT JOIN bus_room r ON rep.room_id = r.id
+        LEFT JOIN bus_unit u ON r.unit_id = u.id      -- 关联单元表
+        LEFT JOIN bus_building b ON r.building_id = b.id
+        LEFT JOIN bus_owner o ON rep.owner_id = o.id
+        <where>
+            rep.is_deleted = 0
+            <if test="query.ownerId != null">
+                AND rep.owner_id = #{query.ownerId}
+            </if>
+            <if test="query.handlerId != null">
+                AND rep.handler_id = #{query.handlerId}
+            </if>
+            <if test="query.status != null">
+                AND rep.status = #{query.status}
+            </if>
+            <if test="query.roomNum != null and query.roomNum != ''">
+                AND r.room_num LIKE CONCAT('%', #{query.roomNum}, '%')
+            </if>
+        </where>
+        ORDER BY rep.create_time DESC
+    </select>
+</mapper>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 这里的 namespace 一定要写对，指向你的 SysMenuMapper 接口 -->
+<mapper namespace="com.aijia.aijia.mapper.sys.SysUserMapper">
+
+
+    <select id="selectUsersByRoleKey" resultType="com.aijia.aijia.entity.sys.SysUser"
+            parameterType="java.lang.String">
+        SELECT
+            u.id,
+            u.nickname,
+            u.username,
+            u.phone
+        FROM sys_user u
+                 INNER JOIN sys_user_role ur ON u.id = ur.user_id
+                 INNER JOIN sys_role r ON ur.role_id = r.id
+        WHERE r.role_key = #{roleKey}
+          AND u.is_deleted = 0
+    </select>
+</mapper>

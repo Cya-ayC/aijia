@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aijia.aijia.mapper.RoomMapper">
+
+    <select id="selectRoomPage" resultType="com.aijia.aijia.entity.vo.RoomVO">
+        SELECT
+        r.*,
+        b.name as building_name,
+        u.name as unit_name,
+        o.name as owner_name,    <!-- 联查业主名 -->
+        o.phone as owner_phone   <!-- 联查业主电话 -->
+        FROM bus_room r
+        LEFT JOIN bus_unit u ON r.unit_id = u.id
+        LEFT JOIN bus_building b ON r.building_id = b.id
+        <!-- 联查关联表 -->
+        LEFT JOIN bus_room_owner ro ON r.id = ro.room_id AND ro.relation_type = 1
+        <!-- 联查业主表 (只查主业主，即 relation_type = 1) -->
+        LEFT JOIN bus_owner o ON ro.owner_id = o.id
+        <where>
+            r.is_deleted = 0
+            <if test="ew != null">
+                <if test="ew.emptyOfWhere == false">
+                    AND ${ew.sqlSegment}
+                </if>
+            </if>
+        </where>
+    </select>
+    <select id="selectRoomVOsByOwnerId" resultType="com.aijia.aijia.entity.Room"
+            parameterType="java.lang.Long">
+        SELECT
+            r.*,
+            b.name AS buildingName,
+            u.name AS unitName
+        FROM bus_room r
+                 INNER JOIN bus_room_owner ro ON r.id = ro.room_id
+                 LEFT JOIN bus_building b ON r.building_id = b.id
+                 LEFT JOIN bus_unit u ON r.unit_id = u.id
+        WHERE ro.owner_id = #{ownerId}
+          AND ro.is_deleted = 0
+          AND r.is_deleted = 0
+    </select>
+</mapper>
